@@ -12,7 +12,7 @@ namespace R5T.Aestia.Database
         public DbSet<Entities.AnomalyToTextItemMapping> AnomalyToTextItemMappings { get; set; }
 
 
-        public AnomalyDbContext(DbContextOptions options)
+        public AnomalyDbContext(DbContextOptions<AnomalyDbContext> options)
             : base(options)
         {
         }
