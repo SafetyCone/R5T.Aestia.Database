@@ -67,7 +67,21 @@ namespace R5T.Aestia.Database
 
         public AnomalyIdentity New()
         {
-            throw new NotImplementedException();
+            var anomalyIdentity = AnomalyIdentity.New();
+
+            using (var dbContext = this.GetNewDbContext())
+            {
+                var anomalyEntity = new Entities.Anomaly()
+                {
+                    GUID = anomalyIdentity.Value,
+                };
+
+                dbContext.Anomalies.Add(anomalyEntity);
+
+                dbContext.SaveChanges();
+            }
+
+            return anomalyIdentity;
         }
 
         public void SetReportedUTC(AnomalyIdentity anomaly, DateTime dateTime)
