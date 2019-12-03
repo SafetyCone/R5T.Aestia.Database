@@ -108,7 +108,14 @@ namespace R5T.Aestia.Database
 
         public void SetReportedUTC(AnomalyIdentity anomaly, DateTime dateTime)
         {
-            throw new NotImplementedException();
+            this.ExecuteInContext(dbContext =>
+            {
+                var entity = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Single();
+
+                entity.ReportedUTC = dateTime;
+
+                dbContext.SaveChanges();
+            });
         }
 
         public void SetReportedLocation(AnomalyIdentity anomaly, LocationIdentity reportedLocation)
