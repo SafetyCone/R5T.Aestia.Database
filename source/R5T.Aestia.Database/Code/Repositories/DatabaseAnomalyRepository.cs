@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -27,12 +28,33 @@ namespace R5T.Aestia.Database
 
         public void AddImageFile(AnomalyIdentity anomaly, ImageFileIdentity imageFile)
         {
-            throw new NotImplementedException();
+            this.ExecuteInContext(dbContext =>
+            {
+                var anomalyID = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Select(x => x.ID).Single();
+
+                var anomalyToImageFileMapping = new Entities.AnomalyToImageFileMapping()
+                {
+                    AnomalyID = anomalyID,
+                    ImageFileGUID = imageFile.Value,
+                };
+
+                dbContext.AnomalyToImageFileMappings.Add(anomalyToImageFileMapping);
+
+                dbContext.SaveChanges();
+            });
         }
 
         public IEnumerable<ImageFileIdentity> GetImageFiles(AnomalyIdentity anomalyIdentity)
         {
-            throw new NotImplementedException();
+            var imageFileIdentities = this.ExecuteInContext(dbContext =>
+            {
+                var imageFileGuids = dbContext.AnomalyToImageFileMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value).Select(x => x.ImageFileGUID);
+
+                var output = imageFileGuids.Select(x => ImageFileIdentity.From(x)).ToList(); // Execute now.
+                return output;
+            });
+
+            return imageFileIdentities;
         }
 
         public DateTime GetReportedUTC(AnomalyIdentity anomaly)
