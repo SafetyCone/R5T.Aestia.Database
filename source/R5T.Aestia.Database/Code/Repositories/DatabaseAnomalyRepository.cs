@@ -120,7 +120,14 @@ namespace R5T.Aestia.Database
 
         public void SetReportedLocation(AnomalyIdentity anomaly, LocationIdentity reportedLocation)
         {
-            throw new NotImplementedException();
+            this.ExecuteInContext(dbContext =>
+            {
+                var entity = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Single();
+
+                entity.RepotedLocationGUID = reportedLocation.Value;
+
+                dbContext.SaveChanges();
+            });
         }
 
         public void SetReporterLocation(AnomalyIdentity anomaly, LocationIdentity reporterLocation)
