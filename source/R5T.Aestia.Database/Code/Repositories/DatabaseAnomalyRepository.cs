@@ -137,7 +137,46 @@ namespace R5T.Aestia.Database
 
         public void SetTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType, TextItemIdentity textItem)
         {
-            throw new NotImplementedException();
+            this.ExecuteInContext(dbContext =>
+            {
+                var anomalyID = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Select(x => x.ID).Single();
+
+                var count = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Count();
+
+                var alreadyExists = count > 0;
+                if(alreadyExists)
+                {
+                    var mappingEntity = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Single();
+
+                    mappingEntity.TextItemGUID = textItem.Value;
+                }
+                else
+                {
+                    var mappingEntity = new Entities.AnomalyToTextItemMapping()
+                    {
+                        AnomalyID = anomalyID,
+                        TextItemTypeGUID = textItemType.Value,
+                        TextItemGUID = textItem.Value,
+                    };
+
+                    dbContext.AnomalyToTextItemMappings.Add(mappingEntity);
+                } 
+
+                dbContext.SaveChanges();
+            });
+        }
+
+        public bool ExistsTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
+        {
+            var exists = this.ExecuteInContext(dbContext =>
+            {
+                var count = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Count();
+
+                var output = count > 0;
+                return output;
+            });
+
+            return exists;
         }
     }
 }
