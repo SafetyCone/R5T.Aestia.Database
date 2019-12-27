@@ -13,17 +13,12 @@ using R5T.Venetia;
 
 namespace R5T.Aestia.Database
 {
-    public class DatabaseAnomalyRepository : DatabaseRepositoryBase<AnomalyDbContext>, IAnomalyRepository
+    public class DatabaseAnomalyRepository<TDbContext> : ProvidedDatabaseRepositoryBase<TDbContext>, IAnomalyRepository
+        where TDbContext: DbContext, IAnomalyDbContext
     {
-        public DatabaseAnomalyRepository(DbContextOptions<AnomalyDbContext> dbContextOptions)
-            : base(dbContextOptions)
+        public DatabaseAnomalyRepository(DbContextOptions<TDbContext> dbContextOptions, IDbContextProvider<TDbContext> dbContextProvider)
+            : base(dbContextOptions, dbContextProvider)
         {
-        }
-
-        public override AnomalyDbContext GetNewDbContext()
-        {
-            var dbContext = new AnomalyDbContext(this.DbContextOptions);
-            return dbContext;
         }
 
         public void AddImageFile(AnomalyIdentity anomaly, ImageFileIdentity imageFile)
