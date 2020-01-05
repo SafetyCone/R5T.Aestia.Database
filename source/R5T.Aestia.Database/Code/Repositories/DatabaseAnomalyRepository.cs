@@ -164,7 +164,7 @@ namespace R5T.Aestia.Database
 
         public async Task<bool> ExistsTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
         {
-            var exists = await this.ExecuteInContextSync(async dbContext =>
+            var exists = await this.ExecuteInContextAsync(async dbContext =>
             {
                 var count = await dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).CountAsync();
 
