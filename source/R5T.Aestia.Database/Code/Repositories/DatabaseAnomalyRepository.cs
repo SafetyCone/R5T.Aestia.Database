@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -21,11 +22,11 @@ namespace R5T.Aestia.Database
         {
         }
 
-        public void AddImageFile(AnomalyIdentity anomaly, ImageFileIdentity imageFile)
+        public async Task AddImageFile(AnomalyIdentity anomalyIdentity, ImageFileIdentity imageFile)
         {
-            this.ExecuteInContext(dbContext =>
+            await this.ExecuteInContextAsync(async dbContext =>
             {
-                var anomalyID = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Select(x => x.ID).Single();
+                var anomalyID = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ID).SingleAsync();
 
                 var anomalyToImageFileMapping = new Entities.AnomalyToImageFileMapping()
                 {
@@ -35,58 +36,58 @@ namespace R5T.Aestia.Database
 
                 dbContext.AnomalyToImageFileMappings.Add(anomalyToImageFileMapping);
 
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             });
         }
 
-        public IEnumerable<ImageFileIdentity> GetImageFiles(AnomalyIdentity anomalyIdentity)
+        public async Task<IEnumerable<ImageFileIdentity>> GetImageFiles(AnomalyIdentity anomalyIdentity)
         {
-            var imageFileIdentities = this.ExecuteInContext(dbContext =>
+            var imageFileIdentities = await this.ExecuteInContextAsync(async dbContext =>
             {
                 var imageFileGuids = dbContext.AnomalyToImageFileMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value).Select(x => x.ImageFileGUID);
 
-                var output = imageFileGuids.Select(x => ImageFileIdentity.From(x)).ToList(); // Execute now.
+                var output = await imageFileGuids.Select(x => ImageFileIdentity.From(x)).ToListAsync(); // Execute now.
                 return output;
             });
 
             return imageFileIdentities;
         }
 
-        public DateTime GetReportedUTC(AnomalyIdentity anomaly)
+        public Task<DateTime> GetReportedUTC(AnomalyIdentity anomaly)
         {
             throw new NotImplementedException();
         }
 
-        public LocationIdentity GetReportedLocation(AnomalyIdentity anomaly)
+        public Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomaly)
         {
             throw new NotImplementedException();
         }
 
-        public LocationIdentity GetReporterLocation(AnomalyIdentity anomaly)
+        public Task<LocationIdentity> GetReporterLocation(AnomalyIdentity anomaly)
         {
             throw new NotImplementedException();
         }
 
-        public TextItemIdentity GetTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
+        public Task<TextItemIdentity> GetTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<Tuple<TextItemTypeIdentity, TextItemIdentity>> GetTextItems(AnomalyIdentity anomaly)
+        public Task<IEnumerable<Tuple<TextItemTypeIdentity, TextItemIdentity>>> GetTextItems(AnomalyIdentity anomaly)
         {
             throw new NotImplementedException();
         }
 
-        public bool HasReporterLocation(AnomalyIdentity anomaly, out LocationIdentity reporterLocation)
+        public Task<(bool HasReporterLocation, LocationIdentity LocationIdentity)> HasReporterLocation(AnomalyIdentity anomaly)
         {
             throw new NotImplementedException();
         }
 
-        public AnomalyIdentity New()
+        public async Task<AnomalyIdentity> New()
         {
             var anomalyIdentity = AnomalyIdentity.New();
 
-            using (var dbContext = this.GetNewDbContext())
+            await this.ExecuteInContextAsync(async dbContext =>
             {
                 var anomalyEntity = new Entities.Anomaly()
                 {
@@ -95,53 +96,53 @@ namespace R5T.Aestia.Database
 
                 dbContext.Anomalies.Add(anomalyEntity);
 
-                dbContext.SaveChanges();
-            }
+                await dbContext.SaveChangesAsync();
+            });
 
             return anomalyIdentity;
         }
 
-        public void SetReportedUTC(AnomalyIdentity anomaly, DateTime dateTime)
+        public async Task SetReportedUTC(AnomalyIdentity anomalyIdentity, DateTime dateTime)
         {
-            this.ExecuteInContext(dbContext =>
+            await this.ExecuteInContextAsync(async dbContext =>
             {
-                var entity = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Single();
+                var entity = await dbContext.GetAnomaly(anomalyIdentity).SingleAsync();
 
                 entity.ReportedUTC = dateTime;
 
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             });
         }
 
-        public void SetReportedLocation(AnomalyIdentity anomaly, LocationIdentity reportedLocation)
+        public async Task SetReportedLocation(AnomalyIdentity anomalyIdentity, LocationIdentity reportedLocation)
         {
-            this.ExecuteInContext(dbContext =>
+            await this.ExecuteInContextAsync(async dbContext =>
             {
-                var entity = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Single();
+                var entity = await dbContext.GetAnomaly(anomalyIdentity).SingleAsync();
 
                 entity.RepotedLocationGUID = reportedLocation.Value;
 
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             });
         }
 
-        public void SetReporterLocation(AnomalyIdentity anomaly, LocationIdentity reporterLocation)
+        public Task SetReporterLocation(AnomalyIdentity anomaly, LocationIdentity reporterLocation)
         {
             throw new NotImplementedException();
         }
 
-        public void SetTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType, TextItemIdentity textItem)
+        public async Task SetTextItem(AnomalyIdentity anomalyIdentity, TextItemTypeIdentity textItemType, TextItemIdentity textItem)
         {
-            this.ExecuteInContext(dbContext =>
+            await this.ExecuteInContextAsync(async dbContext =>
             {
-                var anomalyID = dbContext.Anomalies.Where(x => x.GUID == anomaly.Value).Select(x => x.ID).Single();
+                var anomalyID = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ID).SingleAsync();
 
-                var count = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Count();
+                var count = await dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value && x.TextItemTypeGUID == textItemType.Value).CountAsync();
 
                 var alreadyExists = count > 0;
                 if(alreadyExists)
                 {
-                    var mappingEntity = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Single();
+                    var mappingEntity = await dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value && x.TextItemTypeGUID == textItemType.Value).SingleAsync();
 
                     mappingEntity.TextItemGUID = textItem.Value;
                 }
@@ -157,15 +158,15 @@ namespace R5T.Aestia.Database
                     dbContext.AnomalyToTextItemMappings.Add(mappingEntity);
                 } 
 
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             });
         }
 
-        public bool ExistsTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
+        public async Task<bool> ExistsTextItem(AnomalyIdentity anomaly, TextItemTypeIdentity textItemType)
         {
-            var exists = this.ExecuteInContext(dbContext =>
+            var exists = await this.ExecuteInContextSync(async dbContext =>
             {
-                var count = dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).Count();
+                var count = await dbContext.AnomalyToTextItemMappings.Where(x => x.Anomaly.GUID == anomaly.Value && x.TextItemTypeGUID == textItemType.Value).CountAsync();
 
                 var output = count > 0;
                 return output;
