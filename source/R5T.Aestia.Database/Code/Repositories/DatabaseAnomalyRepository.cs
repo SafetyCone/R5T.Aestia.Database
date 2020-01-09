@@ -10,6 +10,7 @@ using R5T.Francia;
 using R5T.Sindia;
 using R5T.Siscia;
 using R5T.Venetia;
+using R5T.Venetia.Extensions;
 
 
 namespace R5T.Aestia.Database
@@ -58,9 +59,17 @@ namespace R5T.Aestia.Database
             throw new NotImplementedException();
         }
 
-        public Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomaly)
+        public async Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomalyIdentity)
         {
-            throw new NotImplementedException();
+            var locationIdentity = await this.ExecuteInContext(async dbContext =>
+            {
+                var locationIdentityValue = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.RepotedLocationGUID).SingleAsync();
+
+                var output = LocationIdentity.From(locationIdentityValue.Value);
+                return output;
+            });
+
+            return locationIdentity;
         }
 
         public Task<LocationIdentity> GetReporterLocation(AnomalyIdentity anomaly)
@@ -173,6 +182,46 @@ namespace R5T.Aestia.Database
             });
 
             return exists;
+        }
+
+        public async Task<(bool HasCatchment, CatchmentIdentity CatchmentIdentity)> HasCatchment(AnomalyIdentity anomalyIdentity)
+        {
+            var hasOutput = await this.ExecuteInContext(async dbContext =>
+            {
+                var output = await dbContext.AnomalyToCatchmentMappings.HasSingleAsync(x => x.Anomaly.GUID == anomalyIdentity.Value);
+                //var output = await dbContext.AnomalyToCatchmentMappings.Include(x => x.Anomaly).HasSingleAsync(x => x.Anomaly.GUID.Value == anomalyIdentity.Value);
+                //var output = dbContext.AnomalyToCatchmentMappings.Where(x => x.Anomaly.GUID.Value == anomalyIdentity.Value).
+                return output;
+            });
+
+            var catchmentIdentity = hasOutput.Exists ? CatchmentIdentity.From(hasOutput.Result.CatchmentIdentity) : null;
+
+            return (hasOutput.Exists, catchmentIdentity);
+        }
+
+        public async Task<CatchmentIdentity> GetCatchment(AnomalyIdentity anomalyIdentity)
+        {
+            var catchmentIdentity = await this.ExecuteInContext(async dbContext =>
+            {
+                var catchmentIdentityValue = await dbContext.AnomalyToCatchmentMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value).Select(x => x.CatchmentIdentity).SingleAsync();
+
+                var output = CatchmentIdentity.From(catchmentIdentityValue);
+                return output;
+            });
+
+            return catchmentIdentity;
+        }
+
+        public async Task SetCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
+        {
+            await this.ExecuteInContext(async dbContext =>
+            {
+                var mappingEntity = await dbContext.AnomalyToCatchmentMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
+
+                mappingEntity.CatchmentIdentity = catchmentIdentity.Value;
+
+                await dbContext.SaveChangesAsync();
+            });
         }
     }
 }

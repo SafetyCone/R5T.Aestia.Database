@@ -1,9 +1,11 @@
 ﻿using System;
 
+using R5T.Magyar;
+
 
 namespace R5T.Aestia.Database.Entities
 {
-    public class AnomalyToCatchmentMapping
+    public class AnomalyToCatchmentMapping : IIDed
     {
         public int ID { get; set; }
 

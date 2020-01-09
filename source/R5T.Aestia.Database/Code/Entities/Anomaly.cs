@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using R5T.Magyar;
+
 
 namespace R5T.Aestia.Database.Entities
 {
-    public class Anomaly
+    public class Anomaly : IIDed
     {
         public int ID { get; set; }
         public Guid? GUID { get; set; }
@@ -12,6 +14,7 @@ namespace R5T.Aestia.Database.Entities
         public Guid? RepotedLocationGUID { get; set; }
         public Guid? ReporterLocationGUID { get; set; }
 
+        public AnomalyToCatchmentMapping AnomalyToCatchmentMapping { get; set; }
         public ICollection<AnomalyToImageFileMapping> AnomalyToImageFileMappings { get; set; }
         public ICollection<AnomalyToTextItemMapping> AnomalyToTextItemMappings { get; set; }
     }
