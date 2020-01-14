@@ -16,13 +16,14 @@ namespace R5T.Aestia.Database
                 .WithOne(x => x.AnomalyToCatchmentMapping)
                 .HasForeignKey<Entities.AnomalyToCatchmentMapping>(x => x.AnomalyID);
 
+            // For now, can only be one image file per anomaly.
             modelBuilder.Entity<Entities.AnomalyToImageFileMapping>().HasAlternateKey(x => x.AnomalyID);
             modelBuilder.Entity<Entities.AnomalyToImageFileMapping>()
                 .HasOne(x => x.Anomaly)
                 .WithMany(x => x.AnomalyToImageFileMappings)
                 .HasForeignKey(x => x.AnomalyID);
 
-            modelBuilder.Entity<Entities.AnomalyToTextItemMapping>().HasAlternateKey(x => x.AnomalyID);
+            modelBuilder.Entity<Entities.AnomalyToTextItemMapping>().HasAlternateKey(x => new { x.AnomalyID, x.TextItemTypeGUID });
             modelBuilder.Entity<Entities.AnomalyToTextItemMapping>()
                 .HasOne(x => x.Anomaly)
                 .WithMany(x => x.AnomalyToTextItemMappings)
