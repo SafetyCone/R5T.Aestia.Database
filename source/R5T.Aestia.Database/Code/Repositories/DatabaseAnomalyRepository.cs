@@ -223,5 +223,88 @@ namespace R5T.Aestia.Database
                 await dbContext.SaveChangesAsync();
             });
         }
+
+        public async Task<AnomalyInfo> GetAnomalyInfo(AnomalyIdentity anomalyIdentity)
+        {
+            var anomalyInfo = await this.ExecuteInContext(async dbContext =>
+            {
+                //var result = await dbContext.GetAnomaly(anomalyIdentity)
+                //.Include(x => x.AnomalyToCatchmentMapping)
+                //.Include(x => x.AnomalyToImageFileMappings)
+                //.Include(x => x.AnomalyToTextItemMappings)
+                //.Select(x => new
+                //{
+                //    x.ReportedUTC,
+                //    x.RepotedLocationGUID,
+                //    x.ReporterLocationGUID,
+                //    x.AnomalyToCatchmentMapping.CatchmentIdentity,
+                //    ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
+                //    TextItemIdentities = x.AnomalyToTextItemMappings.Select(anomalyToTextItemMapping => anomalyToTextItemMapping.TextItemGUID),
+                //    //ImageFileIdentities = x.AnomalyToImageFileMappings.Where(mapping => mapping.Anomaly.GUID == anomalyIdentity.Value).Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
+                //    //TextItemIdentities = x.AnomalyToTextItemMappings.Where(mapping => mapping.Anomaly.GUID == anomalyIdentity.Value).Select(anomalyToTextItemMapping => anomalyToTextItemMapping.TextItemGUID),
+                //})
+                //.SingleAsync();
+
+                //var result =
+                //   (from anomaly in dbContext.Anomalies
+                //    join toCatchmentMapping in dbContext.AnomalyToCatchmentMappings on anomaly.ID equals toCatchmentMapping.AnomalyID
+                //    join toImageFileMappings in dbContext.AnomalyToImageFileMappings on anomaly.ID equals toImageFileMappings.AnomalyID
+                //    join toTextItemMappings in dbContext.AnomalyToTextItemMappings on anomaly.ID equals toTextItemMappings.AnomalyID
+                //    where anomaly.GUID == anomalyIdentity.Value
+                //    select new
+                //    {
+                //        anomaly.ReportedUTC
+                //        anomaly.GUID,
+                //    }).SingleAsync();
+
+                //var imageFileIdentities = result.
+
+                var gettingAnomalyDetails = dbContext.GetAnomaly(anomalyIdentity)
+                    .Select(x => new
+                    {
+                        x.ReportedUTC,
+                        x.RepotedLocationGUID,
+                        x.ReporterLocationGUID,
+                        x.AnomalyToCatchmentMapping.CatchmentIdentity,
+                        //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
+                        //TextItemIdentities = x.AnomalyToTextItemMappings.Select(anomalyToTextItemMapping => anomalyToTextItemMapping.TextItemGUID),
+                        //ImageFileIdentities = x.AnomalyToImageFileMappings.Where(mapping => mapping.Anomaly.GUID == anomalyIdentity.Value).Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
+                        //TextItemIdentities = x.AnomalyToTextItemMappings.Where(mapping => mapping.Anomaly.GUID == anomalyIdentity.Value).Select(anomalyToTextItemMapping => anomalyToTextItemMapping.TextItemGUID),
+                    })
+                    .SingleAsync();
+
+                var gettingImageFileIdentityValues = dbContext.GetAnomaly(anomalyIdentity)
+                    .Join(dbContext.AnomalyToImageFileMappings,
+                        anomaly => anomaly.ID,
+                        mapping => mapping.AnomalyID,
+                        (_, mapping) => mapping.ImageFileGUID)
+                    .ToListAsync();
+
+                var gettingTextItemIdentityValues = dbContext.GetAnomaly(anomalyIdentity)
+                    .Join(dbContext.AnomalyToTextItemMappings,
+                        anomaly => anomaly.ID,
+                        mapping => mapping.AnomalyID,
+                        (_, mapping) => mapping.TextItemGUID)
+                    .ToListAsync();
+
+                var anomalyDetails = await gettingAnomalyDetails;
+                var imageFileIdentityValues = await gettingImageFileIdentityValues;
+                var textItemIdentityValues = await gettingTextItemIdentityValues;
+
+                var output = new AnomalyInfo()
+                {
+                    AnomalyIdentity = anomalyIdentity,
+                    CatchmentIdentity = CatchmentIdentity.From(anomalyDetails.CatchmentIdentity),
+                    ImageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList(),
+                    ReportedLocation = anomalyDetails.RepotedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.RepotedLocationGUID.Value) : null,
+                    ReporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null,
+                    ReportedUTC = anomalyDetails.ReportedUTC.Value,
+                    TextItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList(),
+                };
+                return output;
+            });
+
+            return anomalyInfo;
+        }
     }
 }
