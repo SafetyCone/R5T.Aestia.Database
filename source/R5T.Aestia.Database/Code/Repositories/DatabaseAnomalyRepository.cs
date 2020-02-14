@@ -226,7 +226,7 @@ namespace R5T.Aestia.Database
 
         public async Task<AnomalyInfo> GetAnomalyInfo(AnomalyIdentity anomalyIdentity)
         {
-            var anomalyInfo = await this.ExecuteInContext(async dbContext =>
+            var anomalyInfo = await this.ExecuteInContextAsync(async dbContext =>
             {
                 //var result = await dbContext.GetAnomaly(anomalyIdentity)
                 //.Include(x => x.AnomalyToCatchmentMapping)
@@ -265,7 +265,7 @@ namespace R5T.Aestia.Database
                         x.ReportedUTC,
                         x.RepotedLocationGUID,
                         x.ReporterLocationGUID,
-                        x.AnomalyToCatchmentMapping.CatchmentIdentity,
+                        //x.AnomalyToCatchmentMapping.CatchmentIdentity,
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
                         //TextItemIdentities = x.AnomalyToTextItemMappings.Select(anomalyToTextItemMapping => anomalyToTextItemMapping.TextItemGUID),
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Where(mapping => mapping.Anomaly.GUID == anomalyIdentity.Value).Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
@@ -287,14 +287,23 @@ namespace R5T.Aestia.Database
                         (_, mapping) => mapping.TextItemGUID)
                     .ToListAsync();
 
+                var gettingCatchmentMapping = dbContext.GetAnomaly(anomalyIdentity)
+                    .Join(dbContext.AnomalyToCatchmentMappings,
+                        anomaly => anomaly.ID,
+                        mapping => mapping.AnomalyID,
+                        (_, mapping) => mapping)
+                    .SingleOrDefaultAsync();
+                    
+
                 var anomalyDetails = await gettingAnomalyDetails;
                 var imageFileIdentityValues = await gettingImageFileIdentityValues;
                 var textItemIdentityValues = await gettingTextItemIdentityValues;
+                var catchmentMapping = await gettingCatchmentMapping;
 
                 var output = new AnomalyInfo()
                 {
                     AnomalyIdentity = anomalyIdentity,
-                    CatchmentIdentity = CatchmentIdentity.From(anomalyDetails.CatchmentIdentity),
+                    CatchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity),
                     ImageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList(),
                     ReportedLocation = anomalyDetails.RepotedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.RepotedLocationGUID.Value) : null,
                     ReporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null,
