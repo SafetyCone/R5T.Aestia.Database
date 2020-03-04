@@ -29,13 +29,23 @@ namespace R5T.Aestia.Database
             {
                 var anomalyID = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ID).SingleAsync();
 
-                var anomalyToImageFileMapping = new Entities.AnomalyToImageFileMapping()
+                // Acquire the AnomalyToImageFileMapping (since there currently can only be one image per anomaly).
+                var anomalyToImageFileMappingEntity = await dbContext.AnomalyToImageFileMappings.Where(x => x.AnomalyID == anomalyID).SingleOrDefaultAsync();
+                var existsAlready = anomalyToImageFileMappingEntity is object;
+                if (existsAlready)
                 {
-                    AnomalyID = anomalyID,
-                    ImageFileGUID = imageFile.Value,
-                };
+                    anomalyToImageFileMappingEntity.ImageFileGUID = imageFile.Value;
+                }
+                else
+                {
+                    anomalyToImageFileMappingEntity = new Entities.AnomalyToImageFileMapping()
+                    {
+                        AnomalyID = anomalyID,
+                        ImageFileGUID = imageFile.Value,
+                    };
 
-                dbContext.AnomalyToImageFileMappings.Add(anomalyToImageFileMapping);
+                    dbContext.AnomalyToImageFileMappings.Add(anomalyToImageFileMappingEntity);
+                }
 
                 await dbContext.SaveChangesAsync();
             });
