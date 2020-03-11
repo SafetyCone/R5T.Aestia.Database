@@ -325,5 +325,18 @@ namespace R5T.Aestia.Database
 
             return anomalyInfo;
         }
+
+        public async Task<IEnumerable<AnomalyIdentity>> GetAllAnomaliesInCatchment(CatchmentIdentity catchmentIdentity)
+        {
+            var anomalies = await this.ExecuteInContextAsync(async dbContext =>
+            {
+                var anomalyIdentityValues = await dbContext.AnomalyToCatchmentMappings.Where(x => x.CatchmentIdentity == catchmentIdentity.Value).Select(x => x.Anomaly.GUID).ToListAsync();
+
+                var output = anomalyIdentityValues.Where(x => x.HasValue).Select(x => AnomalyIdentity.From(x.Value)).ToList();
+                return output;
+            });
+
+            return anomalies;
+        }
     }
 }
