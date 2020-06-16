@@ -23,10 +23,40 @@ namespace R5T.Aestia.Database
         {
         }
 
+
+        public async Task AddAsync(AnomalyIdentity anomalyIdentity)
+        {
+            await this.ExecuteInContextAsync(async dbContext =>
+            {
+                var anomalyEntity = new Entities.Anomaly()
+                {
+                    GUID = anomalyIdentity.Value
+                };
+
+                dbContext.Anomalies.Add(anomalyEntity);
+                await dbContext.SaveChangesAsync();
+            });
+        }
+
+        public async Task<bool> ExistsAsync(AnomalyIdentity anomalyIdentity)
+        {
+            var exists = await this.ExecuteInContextAsync(async dbContext =>
+            {
+                var anomalyEntity = await dbContext.Anomalies.Where(x => x.GUID == anomalyIdentity.Value).SingleOrDefaultAsync();
+
+                var anomalyExists = !(anomalyEntity == default);
+                return anomalyExists;
+            });
+
+            return exists;
+        }
+
         public async Task AddImageFile(AnomalyIdentity anomalyIdentity, ImageFileIdentity imageFile)
         {
             await this.ExecuteInContextAsync(async dbContext =>
             {
+                await this.AddOnlyIfNotExistsAsync(anomalyIdentity);
+
                 var anomalyID = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ID).SingleAsync();
 
                 // Acquire the AnomalyToImageFileMapping (since there currently can only be one image per anomaly).
@@ -73,7 +103,7 @@ namespace R5T.Aestia.Database
         {
             var locationIdentity = await this.ExecuteInContext(async dbContext =>
             {
-                var locationIdentityValue = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.RepotedLocationGUID).SingleAsync();
+                var locationIdentityValue = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ReportedLocationGUID).SingleAsync();
 
                 var output = LocationIdentity.From(locationIdentityValue.Value);
                 return output;
@@ -139,7 +169,7 @@ namespace R5T.Aestia.Database
             {
                 var entity = await dbContext.GetAnomaly(anomalyIdentity).SingleAsync();
 
-                entity.RepotedLocationGUID = reportedLocation.Value;
+                entity.ReportedLocationGUID = reportedLocation.Value;
 
                 await dbContext.SaveChangesAsync();
             });
@@ -273,7 +303,7 @@ namespace R5T.Aestia.Database
                     .Select(x => new
                     {
                         x.ReportedUTC,
-                        x.RepotedLocationGUID,
+                        RepotedLocationGUID=x.ReportedLocationGUID,
                         x.ReporterLocationGUID,
                         //x.AnomalyToCatchmentMapping.CatchmentIdentity,
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
