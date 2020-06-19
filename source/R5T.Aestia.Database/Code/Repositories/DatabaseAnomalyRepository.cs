@@ -275,7 +275,7 @@ namespace R5T.Aestia.Database
                 //.Select(x => new
                 //{
                 //    x.ReportedUTC,
-                //    x.RepotedLocationGUID,
+                //    x.ReportedLocationGUID,
                 //    x.ReporterLocationGUID,
                 //    x.AnomalyToCatchmentMapping.CatchmentIdentity,
                 //    ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
@@ -303,7 +303,7 @@ namespace R5T.Aestia.Database
                     .Select(x => new
                     {
                         x.ReportedUTC,
-                        RepotedLocationGUID=x.ReportedLocationGUID,
+                        ReportedLocationGUID=x.ReportedLocationGUID,
                         x.ReporterLocationGUID,
                         //x.AnomalyToCatchmentMapping.CatchmentIdentity,
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
@@ -345,7 +345,7 @@ namespace R5T.Aestia.Database
                     AnomalyIdentity = anomalyIdentity,
                     CatchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity),
                     ImageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList(),
-                    ReportedLocation = anomalyDetails.RepotedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.RepotedLocationGUID.Value) : null,
+                    ReportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null,
                     ReporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null,
                     ReportedUTC = anomalyDetails.ReportedUTC.Value,
                     TextItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList(),
