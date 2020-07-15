@@ -224,6 +224,11 @@ namespace R5T.Aestia.Database
             return exists;
         }
 
+        /// <summary>
+        /// Returns the single catchment identity that the anomaly is currently mapped to.
+        /// </summary>
+        /// <param name="anomalyIdentity"></param>
+        /// <returns></returns>
         public async Task<(bool HasCatchment, CatchmentIdentity CatchmentIdentity)> HasCatchment(AnomalyIdentity anomalyIdentity)
         {
             var hasOutput = await this.ExecuteInContext(async dbContext =>
