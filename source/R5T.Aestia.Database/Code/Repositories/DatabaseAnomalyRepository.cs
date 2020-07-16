@@ -308,7 +308,7 @@ namespace R5T.Aestia.Database
                     .Select(x => new
                     {
                         x.ReportedUTC,
-                        ReportedLocationGUID=x.ReportedLocationGUID,
+                        x.ReportedLocationGUID,
                         x.ReporterLocationGUID,
                         //x.AnomalyToCatchmentMapping.CatchmentIdentity,
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
