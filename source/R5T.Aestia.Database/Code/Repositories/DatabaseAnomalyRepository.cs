@@ -23,7 +23,6 @@ namespace R5T.Aestia.Database
         {
         }
 
-
         public async Task AddAsync(AnomalyIdentity anomalyIdentity)
         {
             await this.ExecuteInContextAsync(async dbContext =>
@@ -99,7 +98,7 @@ namespace R5T.Aestia.Database
             throw new NotImplementedException();
         }
 
-        public async Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomalyIdentity)
+        public async Task<LocationIdentity> GetReportedLocationAsync(AnomalyIdentity anomalyIdentity)
         {
             var locationIdentity = await this.ExecuteInContext(async dbContext =>
             {
