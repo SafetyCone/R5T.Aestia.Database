@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
 
-using R5T.Sindia;
 using R5T.Venetia.Extensions;
 
 using R5T.Aestia.Database.Entities;
