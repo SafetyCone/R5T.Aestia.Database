@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 using R5T.Corcyra;
 using R5T.Francia;
+using R5T.Orgerben;
 using R5T.Sindia;
 using R5T.Siscia;
 using R5T.Venetia;
@@ -371,6 +372,18 @@ namespace R5T.Aestia.Database
             });
 
             return anomalies;
+        }
+
+        public async Task SetOrganization(AnomalyIdentity anomalyIdentity, OrganizationIdentity organizationIdentity)
+        {
+            await this.ExecuteInContextAsync(async dbContext =>
+            {
+                var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, organizationIdentity.Value);
+
+                mappingEntity.OrganizationIdentity = organizationIdentity.Value;
+
+                await dbContext.SaveChangesAsync();
+            });
         }
     }
 }

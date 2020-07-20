@@ -10,6 +10,7 @@ namespace R5T.Aestia.Database
         DbSet<Entities.Anomaly> Anomalies { get; }
         DbSet<Entities.AnomalyToCatchmentMapping> AnomalyToCatchmentMappings { get; }
         DbSet<Entities.AnomalyToImageFileMapping> AnomalyToImageFileMappings { get; }
+        DbSet<Entities.AnomalyToOrganizationMapping> AnomalyToOrganizationMappings { get; }
         DbSet<Entities.AnomalyToTextItemMapping> AnomalyToTextItemMappings { get; }
     }
 }
