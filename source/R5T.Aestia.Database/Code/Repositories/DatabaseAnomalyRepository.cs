@@ -378,7 +378,7 @@ namespace R5T.Aestia.Database
         {
             await this.ExecuteInContextAsync(async dbContext =>
             {
-                var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, organizationIdentity.Value);
+                var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
 
                 mappingEntity.OrganizationIdentity = organizationIdentity.Value;
 
