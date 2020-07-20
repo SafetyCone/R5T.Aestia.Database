@@ -8,5 +8,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\R5T.Aestia.Base\source\R5T.Aestia.Base\R5T.Aestia.Base.csproj" />
     <ProjectReference Include="..\..\..\R5T.Venetia.Extensions\source\R5T.Venetia.Extensions\R5T.Venetia.Extensions.csproj" />
+    <ProjectReference Include="..\..\..\R5T.Orgerben\source\R5T.Orgerben\R5T.Orgerben.csproj" />
   </ItemGroup>
 </Project>

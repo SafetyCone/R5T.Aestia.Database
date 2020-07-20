@@ -1,0 +1,122 @@
+diff --git a/source/R5T.Aestia.Database/Code/Repositories/DatabaseAnomalyRepository.cs b/source/R5T.Aestia.Database/Code/Repositories/DatabaseAnomalyRepository.cs
+index 0a3dec6..aad66da 100644
+--- a/source/R5T.Aestia.Database/Code/Repositories/DatabaseAnomalyRepository.cs
++++ b/source/R5T.Aestia.Database/Code/Repositories/DatabaseAnomalyRepository.cs
+@@ -81,7 +81,7 @@ namespace R5T.Aestia.Database
+             });
+         }
+ 
+-        public async Task<List<ImageFileIdentity>> GetImageFiles(AnomalyIdentity anomalyIdentity)
++        public async Task<IEnumerable<ImageFileIdentity>> GetImageFiles(AnomalyIdentity anomalyIdentity)
+         {
+             var imageFileIdentities = await this.ExecuteInContextAsync(async dbContext =>
+             {
+@@ -122,7 +122,7 @@ namespace R5T.Aestia.Database
+             throw new NotImplementedException();
+         }
+ 
+-        public Task<List<Tuple<TextItemTypeIdentity, TextItemIdentity>>> GetTextItems(AnomalyIdentity anomaly)
++        public Task<IEnumerable<Tuple<TextItemTypeIdentity, TextItemIdentity>>> GetTextItems(AnomalyIdentity anomaly)
+         {
+             throw new NotImplementedException();
+         }
+@@ -356,98 +356,7 @@ namespace R5T.Aestia.Database
+             return anomalyInfo;
+         }
+ 
+-        public async Task<List<AnomalyInfo>> GetAnomalyInfos(List<AnomalyIdentity> anomalyIdentities)
+-        {
+-            var anomalyGuids = anomalyIdentities.Select(x => x.Value).ToList();
+-            var output = await this.ExecuteInContextAsync(async dbContext =>
+-            {
+-                var query = 
+-                    from anomaly in dbContext.Anomalies
+-                    where anomaly.GUID != null
+-                    where anomalyGuids.Contains(anomaly.GUID.Value)
+-                    join anomalyCatchment in dbContext.AnomalyToCatchmentMappings
+-                        on anomaly.ID equals anomalyCatchment.AnomalyID into catchmentGroup
+-                    from c in catchmentGroup.DefaultIfEmpty()
+-                    join anomalyText in dbContext.AnomalyToTextItemMappings
+-                        on anomaly.ID equals anomalyText.AnomalyID into textGroup
+-                    from t in textGroup.DefaultIfEmpty()
+-                    join anomalyImage in dbContext.AnomalyToImageFileMappings
+-                        on anomaly.ID equals anomalyImage.AnomalyID into imageGroup
+-                    from i in imageGroup.DefaultIfEmpty()
+-                    select new {
+-                        anomaly.ID,
+-                        anomaly.GUID,
+-                        anomaly.ReportedUTC,
+-                        anomaly.ReportedLocationGUID,
+-                        anomaly.ReporterLocationGUID,
+-                        CatchmentIdentity = c == default ? Guid.Empty : c.CatchmentIdentity,
+-                        TextItemIdentity = t == default ? Guid.Empty : t.TextItemGUID,
+-                        ImageIdentity = i == default ? Guid.Empty : i.ImageFileGUID,
+-                    };
+-
+-                var result = await query.ToListAsync();
+-                var grouped = result.GroupBy(group =>
+-                        new {group.ID, group.GUID, group.ReportedUTC,
+-                            group.ReportedLocationGUID,
+-                            group.ReporterLocationGUID
+-                        }, group => group);
+-                var anomalyInfos = new List<AnomalyInfo>();
+-                foreach (var entry in grouped)
+-                {
+-                    // Console.WriteLine(entry.Key);
+-                    var images = new HashSet<Guid>();
+-                    var catchments = new HashSet<Guid>();
+-                    var textItemSet = new HashSet<Guid>();
+-                    foreach (var thing in entry)
+-                    {
+-                        images.Add(thing.ImageIdentity);
+-                        catchments.Add(thing.CatchmentIdentity);
+-                        textItemSet.Add(thing.TextItemIdentity);
+-                    }
+-                    var imagesList = images.ToList();
+-                    var catchmentsList = catchments.ToList();
+-                    var textItemsList = textItemSet.ToList();
+-
+-                    // Console.WriteLine($"    Images ({images.Count}):     {string.Join(',',images.ToList())}");
+-                    // Console.WriteLine($"    Catchments ({catchments.Count}): {string.Join(',', catchments.ToList())}");
+-                    // Console.WriteLine($"    Text items ({textItemSet.Count}): {string.Join(',', textItemSet.ToList())}");
+-
+-                    if (entry.Key.GUID.GetValueOrDefault() == default)
+-                    {
+-                        // Unfortunately this also catches anomalies added with an all-zeros guid...
+-                        // and we have at least one of those (ID 228 as of 2020-07-17)
+-                        // throw new Exception("Got an anomaly without a GUID");
+-                    }
+-                    if (catchments.Count > 1)
+-                    {
+-                        throw new Exception("Got multiple catchments for an anomaly, not supported in AnomalyInfo");
+-                    }
+-                    var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID.GetValueOrDefault());
+-                    var reportedUTC = entry.Key.ReportedUTC.HasValue ? entry.Key.ReportedUTC.Value : DateTime.MinValue;
+-                    var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
+-                    var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
+-                    var catchmentIdentity = catchmentsList.Count > 0 ? CatchmentIdentity.From(catchmentsList[0]) : default;
+-                    var imageFileIdentities = imagesList.Select(x => ImageFileIdentity.From(x)).ToList();
+-                    var textItems = textItemsList.Select(x => TextItemIdentity.From(x)).ToList();
+-                    var info = new AnomalyInfo {
+-                        AnomalyIdentity = anomalyIdentity,
+-                        ReportedUTC = reportedUTC,
+-                        ReportedLocation = reportedLocation,
+-                        ReporterLocation = reporterLocation,
+-                        CatchmentIdentity = catchmentIdentity,
+-                        ImageFileIdentities = imageFileIdentities,
+-                        TextItems = textItems
+-                    };
+-                    anomalyInfos.Add(info);
+-                };
+-                return anomalyInfos;
+-            });
+-
+-            return output;
+-
+-        }
+-
+-        public async Task<List<AnomalyIdentity>> GetAllAnomaliesInCatchment(CatchmentIdentity catchmentIdentity)
++        public async Task<IEnumerable<AnomalyIdentity>> GetAllAnomaliesInCatchment(CatchmentIdentity catchmentIdentity)
+         {
+             var anomalies = await this.ExecuteInContextAsync(async dbContext =>
+             {
