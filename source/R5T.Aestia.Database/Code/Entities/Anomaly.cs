@@ -14,8 +14,9 @@ namespace R5T.Aestia.Database.Entities
         public Guid? ReportedLocationGUID { get; set; }
         public Guid? ReporterLocationGUID { get; set; }
 
-        public AnomalyToCatchmentMapping AnomalyToCatchmentMapping { get; set; }
+        public ICollection<AnomalyToCatchmentMapping> AnomalyToCatchmentMappings { get; set; }
         public ICollection<AnomalyToImageFileMapping> AnomalyToImageFileMappings { get; set; }
+        public ICollection<AnomalyToOrganizationMapping> AnomalyToOrganizationMappings { get; set; }
         public ICollection<AnomalyToTextItemMapping> AnomalyToTextItemMappings { get; set; }
     }
 }

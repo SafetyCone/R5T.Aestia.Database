@@ -10,24 +10,24 @@ using R5T.Aestia.Database.Entities;
 
 namespace R5T.Aestia.Database
 {
-    public static class AnomalyToCatchmentMappingDbSetExtensions
+    public static class AnomalyToOrganizationMappingDbSetExtensions
     {
-        public static async Task<AnomalyToCatchmentMapping> Acquire(this DbSet<AnomalyToCatchmentMapping> set, DbSet<Anomaly> anomalies, Guid anomalyIdentityValue)
+        public static async Task<AnomalyToOrganizationMapping> Acquire(this DbSet<AnomalyToOrganizationMapping> set, DbSet<Anomaly> anomalies, Guid anomalyIdentityValue)
         {
-            var anomalyToCatchmentMappingEntity = await set.AcquireSingleAsync(
+            var anomalyToOrganizationMappingEntity = await set.AcquireSingleAsync(
                 x => x.Anomaly.GUID == anomalyIdentityValue,
                 async () =>
                 {
                     var anomalyID = await anomalies.GetIDByPredicateForSingleAsync(x => x.GUID == anomalyIdentityValue);
 
-                    var output = new AnomalyToCatchmentMapping()
+                    var output = new AnomalyToOrganizationMapping()
                     {
                         AnomalyID = anomalyID
                     };
                     return output;
                 });
 
-            return anomalyToCatchmentMappingEntity;
+            return anomalyToOrganizationMappingEntity;
         }
     }
 }

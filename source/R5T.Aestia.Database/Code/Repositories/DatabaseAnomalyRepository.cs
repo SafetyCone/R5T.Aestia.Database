@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 using R5T.Corcyra;
 using R5T.Francia;
+using R5T.Orgerben;
 using R5T.Sindia;
 using R5T.Siscia;
 using R5T.Venetia;
@@ -22,7 +23,6 @@ namespace R5T.Aestia.Database
             : base(dbContextOptions, dbContextProvider)
         {
         }
-
 
         public async Task AddAsync(AnomalyIdentity anomalyIdentity)
         {
@@ -99,7 +99,7 @@ namespace R5T.Aestia.Database
             throw new NotImplementedException();
         }
 
-        public async Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomalyIdentity)
+        public async Task<LocationIdentity> GetReportedLocationAsync(AnomalyIdentity anomalyIdentity)
         {
             var locationIdentity = await this.ExecuteInContext(async dbContext =>
             {
@@ -224,6 +224,11 @@ namespace R5T.Aestia.Database
             return exists;
         }
 
+        /// <summary>
+        /// Returns the single catchment identity that the anomaly is currently mapped to.
+        /// </summary>
+        /// <param name="anomalyIdentity"></param>
+        /// <returns></returns>
         public async Task<(bool HasCatchment, CatchmentIdentity CatchmentIdentity)> HasCatchment(AnomalyIdentity anomalyIdentity)
         {
             var hasOutput = await this.ExecuteInContext(async dbContext =>
@@ -303,7 +308,7 @@ namespace R5T.Aestia.Database
                     .Select(x => new
                     {
                         x.ReportedUTC,
-                        ReportedLocationGUID=x.ReportedLocationGUID,
+                        x.ReportedLocationGUID,
                         x.ReporterLocationGUID,
                         //x.AnomalyToCatchmentMapping.CatchmentIdentity,
                         //ImageFileIdentities = x.AnomalyToImageFileMappings.Select(anomalyToImageFileMapping => anomalyToImageFileMapping.ImageFileGUID),
@@ -458,6 +463,18 @@ namespace R5T.Aestia.Database
             });
 
             return anomalies;
+        }
+
+        public async Task SetOrganization(AnomalyIdentity anomalyIdentity, OrganizationIdentity organizationIdentity)
+        {
+            await this.ExecuteInContextAsync(async dbContext =>
+            {
+                var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
+
+                mappingEntity.OrganizationIdentity = organizationIdentity.Value;
+
+                await dbContext.SaveChangesAsync();
+            });
         }
     }
 }
