@@ -345,15 +345,22 @@ namespace R5T.Aestia.Database
                 var textItemIdentityValues = await gettingTextItemIdentityValues;
                 var catchmentMapping = await gettingCatchmentMapping;
 
+                var catchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity);
+                var imageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList();
+                var reportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null;
+                var reporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null;
+                var reportedUTC = anomalyDetails.ReportedUTC ?? DateTime.MinValue;
+                var textItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList();
+
                 var output = new AnomalyInfo()
                 {
                     AnomalyIdentity = anomalyIdentity,
-                    CatchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity),
-                    ImageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList(),
-                    ReportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null,
-                    ReporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null,
-                    ReportedUTC = anomalyDetails.ReportedUTC.Value,
-                    TextItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList(),
+                    CatchmentIdentity = catchmentIdentity,
+                    ImageFileIdentities = imageFileIdentities,
+                    ReportedLocation = reportedLocation,
+                    ReporterLocation = reporterLocation,
+                    ReportedUTC = reportedUTC,
+                    TextItems = textItems,
                 };
                 return output;
             });
@@ -457,7 +464,7 @@ namespace R5T.Aestia.Database
                         throw new Exception("Got multiple catchments for an anomaly, not supported in AnomalyInfo");
                     }
                     var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID.GetValueOrDefault());
-                    var reportedUTC = entry.Key.ReportedUTC.HasValue ? entry.Key.ReportedUTC.Value : DateTime.MinValue;
+                    var reportedUTC = entry.Key.ReportedUTC ?? DateTime.MinValue;
                     var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
                     var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
                     var catchmentIdentity = catchmentsList.Count > 0 ? CatchmentIdentity.From(catchmentsList[0]) : default;
