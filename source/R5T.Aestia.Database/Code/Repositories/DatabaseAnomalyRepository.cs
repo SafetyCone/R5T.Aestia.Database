@@ -368,6 +368,7 @@ namespace R5T.Aestia.Database
             return anomalyInfo;
         }
 
+
         public async Task<List<AnomalyIdentity>> GetAllAnomaliesInCatchment(CatchmentIdentity catchmentIdentity)
         {
             var anomalies = await this.ExecuteInContextAsync(async dbContext =>
