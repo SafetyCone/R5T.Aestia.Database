@@ -121,7 +121,12 @@ namespace R5T.Aestia.Database
         {
             var textItemIdentity = await this.ExecuteInContextAsync(async dbContext =>
             {
-                var
+                var output = await dbContext.AnomalyToTextItemMappings
+                    .Where(x => x.Anomaly.GUID == anomalyIdentity.Value && x.TextItemTypeGUID == textItemTypeIdentity.Value)
+                    .Select(x => TextItemIdentity.From(x.TextItemGUID))
+                    .SingleAsync();
+
+                return output;
             });
 
             return textItemIdentity;
