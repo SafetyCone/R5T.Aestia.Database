@@ -55,8 +55,6 @@ namespace R5T.Aestia.Database
         {
             await this.ExecuteInContextAsync(async dbContext =>
             {
-                await this.AddOnlyIfNotExistsAsync(anomalyIdentity);
-
                 var anomalyID = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ID).SingleAsync();
 
                 // Acquire the AnomalyToImageFileMapping (since there currently can only be one image per anomaly).
