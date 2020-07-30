@@ -101,9 +101,10 @@ namespace R5T.Aestia.Database
         {
             var locationIdentity = await this.ExecuteInContext(async dbContext =>
             {
-                var locationIdentityValue = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ReportedLocationGUID).SingleAsync();
+                var locationIdentityValue = await dbContext.GetAnomaly(anomalyIdentity).Select(x => x.ReportedLocationGUID).SingleOrDefaultAsync();
 
-                var output = LocationIdentity.From(locationIdentityValue.Value);
+                var output = locationIdentityValue == null ? null : LocationIdentity.From(locationIdentityValue.Value);
+              
                 return output;
             });
 
