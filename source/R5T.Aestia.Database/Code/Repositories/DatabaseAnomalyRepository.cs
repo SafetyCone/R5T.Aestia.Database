@@ -34,6 +34,7 @@ namespace R5T.Aestia.Database
                 };
 
                 dbContext.Anomalies.Add(anomalyEntity);
+
                 await dbContext.SaveChangesAsync();
             });
         }
