@@ -465,5 +465,39 @@ namespace R5T.Aestia.Database
 
             return output;
         }
+
+        public Task<Dictionary<AnomalyIdentity, List<ImageFileIdentity>>> GetImageFilesForAnomalies(IEnumerable<AnomalyIdentity> anomalyIdentities)
+        {
+            return this.ExecuteInContext(async dbContext =>
+            {
+                var anomalyGuids = anomalyIdentities.Select(x => x.Value).ToList();
+
+                var query = from anomaly in dbContext.Anomalies
+                    where anomalyGuids.Contains(anomaly.GUID.Value)
+                    join anomalyImage in dbContext.AnomalyToImageFileMappings
+                        on anomaly.ID equals anomalyImage.AnomalyID into imageGroup
+                    from i in imageGroup.DefaultIfEmpty()
+                    select new
+                    {
+                        anomaly.GUID,
+                        ImageIdentity = i == default ? Guid.Empty : i.ImageFileGUID,
+                    };
+
+                var result = await query.ToListAsync();
+
+                // Group it by anomaly (since we need an AnomalyInfo per AnomalyIdentity passed in)
+                var grouped = result.GroupBy(
+                    x => AnomalyIdentity.From(x.GUID.Value),
+                    x => ImageFileIdentity.From(x.ImageIdentity));
+
+                var output = grouped.ToDictionary(
+                    grouping => grouping.Key,
+                    grouping => grouping
+                        .Where(x => !x.IsEmpty())
+                        .ToList());
+
+                return output;
+            });
+        }
     }
 }
