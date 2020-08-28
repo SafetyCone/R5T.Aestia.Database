@@ -267,6 +267,7 @@ namespace R5T.Aestia.Database
             return catchmentIdentity;
         }
 
+        // TODO: Allow an anomaly to be associated with multiple catchments
         public async Task SetCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
         {
             await this.ExecuteInContext(async dbContext =>
