@@ -336,7 +336,6 @@ namespace R5T.Aestia.Database
                 var catchmentMapping = await gettingCatchmentMapping;
 
                 var catchmentIdentities = catchmentMapping.Select(x => CatchmentIdentity.From(x.CatchmentIdentity)).ToList();
-                // var catchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity);
                 var imageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList();
                 var reportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null;
                 var reporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null;
