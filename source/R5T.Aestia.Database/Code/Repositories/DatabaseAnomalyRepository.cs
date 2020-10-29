@@ -283,6 +283,16 @@ namespace R5T.Aestia.Database
                     .Select(x => x.ID)
                     .SingleAsync();
 
+                // If the anomaly and catchment are already associated, do nothing.
+                var exists = await dbContext.AnomalyToCatchmentMappings
+                    .Where(x => x.AnomalyID == anomalyID)
+                    .Where(x => x.CatchmentIdentity == catchmentIdentity.Value)
+                    .AnyAsync();
+                if (exists)
+                {
+                    return;
+                }
+
                 // Create new entity
                 var newEntity = new Entities.AnomalyToCatchmentMapping {
                     AnomalyID = anomalyID,
@@ -373,6 +383,8 @@ namespace R5T.Aestia.Database
 
         public async Task SetOrganization(AnomalyIdentity anomalyIdentity, OrganizationIdentity organizationIdentity)
         {
+            // TODO: change this into AddOrganization, so that anomalies can have multiple associated organizations...
+            // Though...is AnomalyToOrganizationMappings ever used??
             await this.ExecuteInContextAsync(async dbContext =>
             {
                 var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
@@ -453,16 +465,11 @@ namespace R5T.Aestia.Database
                         // and we have at least one of those (ID 228 as of 2020-07-17)
                         // throw new Exception("Got an anomaly without a GUID");
                     }
-                    if (catchments.Count > 1)
-                    {
-                        throw new Exception("Got multiple catchments for an anomaly, not supported in AnomalyInfo");
-                    }
                     var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID.GetValueOrDefault());
                     var reportedUTC = entry.Key.ReportedUTC ?? DateTime.MinValue;
                     var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
                     var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
                     var catchmentIdentities = catchmentsList.Select(x => CatchmentIdentity.From(x)).ToList();
-                    // var catchmentIdentity = catchmentsList.Count > 0 ? CatchmentIdentity.From(catchmentsList[0]) : default;
                     var imageFileIdentities = imagesList.Select(x => ImageFileIdentity.From(x)).ToList();
                     var textItems = textItemsList.Select(x => TextItemIdentity.From(x)).ToList();
                     var info = new AnomalyInfo
