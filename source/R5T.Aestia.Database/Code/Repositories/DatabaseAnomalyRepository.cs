@@ -254,28 +254,53 @@ namespace R5T.Aestia.Database
             return (hasOutput.Exists, catchmentIdentity);
         }
 
-        public async Task<CatchmentIdentity> GetCatchment(AnomalyIdentity anomalyIdentity)
+        public async Task<List<CatchmentIdentity>> GetCatchments(AnomalyIdentity anomalyIdentity)
         {
-            var catchmentIdentity = await this.ExecuteInContext(async dbContext =>
+            var catchmentIdentities = await this.ExecuteInContext(async dbContext =>
             {
-                var catchmentIdentityValue = await dbContext.AnomalyToCatchmentMappings.Where(x => x.Anomaly.GUID == anomalyIdentity.Value).Select(x => x.CatchmentIdentity).SingleAsync();
+                var output = await dbContext.AnomalyToCatchmentMappings
+                    .Where(x => x.Anomaly.GUID == anomalyIdentity.Value)
+                    .Select(x => x.CatchmentIdentity)
+                    .Select(x => CatchmentIdentity.From(x))
+                    .ToListAsync();
 
-                var output = CatchmentIdentity.From(catchmentIdentityValue);
                 return output;
             });
 
-            return catchmentIdentity;
+            return catchmentIdentities;
         }
 
-        // TODO: Allow an anomaly to be associated with multiple catchments
-        public async Task SetCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
+        public async Task AddCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
         {
             await this.ExecuteInContext(async dbContext =>
             {
-                var mappingEntity = await dbContext.AnomalyToCatchmentMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
+                // Old version involved this
+                // var mappingEntity = await dbContext.AnomalyToCatchmentMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
+                // mappingEntity.CatchmentIdentity = catchmentIdentity.Value;
 
-                mappingEntity.CatchmentIdentity = catchmentIdentity.Value;
+                // Get the anomaly ID from its GUID
+                var anomalyID = await dbContext.GetAnomaly(anomalyIdentity.Value)
+                    .Select(x => x.ID)
+                    .SingleAsync();
 
+                // If the anomaly and catchment are already associated, do nothing.
+                var exists = await dbContext.AnomalyToCatchmentMappings
+                    .Where(x => x.AnomalyID == anomalyID)
+                    .Where(x => x.CatchmentIdentity == catchmentIdentity.Value)
+                    .AnyAsync();
+                if (exists)
+                {
+                    return;
+                }
+
+                // Create new entity
+                var newEntity = new Entities.AnomalyToCatchmentMapping {
+                    AnomalyID = anomalyID,
+                    CatchmentIdentity = catchmentIdentity.Value
+                };
+
+                // Add it to the database and save
+                dbContext.Add(newEntity);
                 await dbContext.SaveChangesAsync();
             });
         }
@@ -312,7 +337,7 @@ namespace R5T.Aestia.Database
                         anomaly => anomaly.ID,
                         mapping => mapping.AnomalyID,
                         (_, mapping) => mapping)
-                    .SingleOrDefaultAsync();
+                    .ToListAsync();
 
 
                 var anomalyDetails = await gettingAnomalyDetails;
@@ -320,7 +345,7 @@ namespace R5T.Aestia.Database
                 var textItemIdentityValues = await gettingTextItemIdentityValues;
                 var catchmentMapping = await gettingCatchmentMapping;
 
-                var catchmentIdentity = catchmentMapping == default ? default : CatchmentIdentity.From(catchmentMapping.CatchmentIdentity);
+                var catchmentIdentities = catchmentMapping.Select(x => CatchmentIdentity.From(x.CatchmentIdentity)).ToList();
                 var imageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList();
                 var reportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null;
                 var reporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null;
@@ -330,7 +355,7 @@ namespace R5T.Aestia.Database
                 var output = new AnomalyInfo()
                 {
                     AnomalyIdentity = anomalyIdentity,
-                    CatchmentIdentity = catchmentIdentity,
+                    CatchmentIdentities = catchmentIdentities,
                     ImageFileIdentities = imageFileIdentities,
                     ReportedLocation = reportedLocation,
                     ReporterLocation = reporterLocation,
@@ -358,6 +383,8 @@ namespace R5T.Aestia.Database
 
         public async Task SetOrganization(AnomalyIdentity anomalyIdentity, OrganizationIdentity organizationIdentity)
         {
+            // TODO: change this into AddOrganization, so that anomalies can have multiple associated organizations...
+            // Though...is AnomalyToOrganizationMappings ever used??
             await this.ExecuteInContextAsync(async dbContext =>
             {
                 var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
@@ -438,15 +465,11 @@ namespace R5T.Aestia.Database
                         // and we have at least one of those (ID 228 as of 2020-07-17)
                         // throw new Exception("Got an anomaly without a GUID");
                     }
-                    if (catchments.Count > 1)
-                    {
-                        throw new Exception("Got multiple catchments for an anomaly, not supported in AnomalyInfo");
-                    }
                     var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID.GetValueOrDefault());
                     var reportedUTC = entry.Key.ReportedUTC ?? DateTime.MinValue;
                     var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
                     var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
-                    var catchmentIdentity = catchmentsList.Count > 0 ? CatchmentIdentity.From(catchmentsList[0]) : default;
+                    var catchmentIdentities = catchmentsList.Select(x => CatchmentIdentity.From(x)).ToList();
                     var imageFileIdentities = imagesList.Select(x => ImageFileIdentity.From(x)).ToList();
                     var textItems = textItemsList.Select(x => TextItemIdentity.From(x)).ToList();
                     var info = new AnomalyInfo
@@ -455,7 +478,7 @@ namespace R5T.Aestia.Database
                         ReportedUTC = reportedUTC,
                         ReportedLocation = reportedLocation,
                         ReporterLocation = reporterLocation,
-                        CatchmentIdentity = catchmentIdentity,
+                        CatchmentIdentities = catchmentIdentities,
                         ImageFileIdentities = imageFileIdentities,
                         TextItems = textItems
                     };
