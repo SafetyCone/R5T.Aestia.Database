@@ -24,13 +24,14 @@ namespace R5T.Aestia.Database
         {
         }
 
-        public async Task AddAsync(AnomalyIdentity anomalyIdentity)
+        public async Task Add(AnomalyIdentity anomalyIdentity, DateTime reportedUTC)
         {
             await this.ExecuteInContextAsync(async dbContext =>
             {
                 var anomalyEntity = new Entities.Anomaly()
                 {
-                    GUID = anomalyIdentity.Value
+                    GUID = anomalyIdentity.Value,
+                    ReportedUTC = reportedUTC,
                 };
 
                 dbContext.Anomalies.Add(anomalyEntity);
@@ -39,7 +40,7 @@ namespace R5T.Aestia.Database
             });
         }
 
-        public async Task<bool> ExistsAsync(AnomalyIdentity anomalyIdentity)
+        public async Task<bool> Exists(AnomalyIdentity anomalyIdentity)
         {
             var exists = await this.ExecuteInContextAsync(async dbContext =>
             {
@@ -98,7 +99,7 @@ namespace R5T.Aestia.Database
             throw new NotImplementedException();
         }
 
-        public async Task<LocationIdentity> GetReportedLocationAsync(AnomalyIdentity anomalyIdentity)
+        public async Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomalyIdentity)
         {
             var locationIdentity = await this.ExecuteInContext(async dbContext =>
             {
@@ -140,25 +141,6 @@ namespace R5T.Aestia.Database
         public Task<(bool HasReporterLocation, LocationIdentity LocationIdentity)> HasReporterLocation(AnomalyIdentity anomalyIdentity)
         {
             throw new NotImplementedException();
-        }
-
-        public async Task<AnomalyIdentity> New()
-        {
-            var anomalyIdentity = AnomalyIdentity.New();
-
-            await this.ExecuteInContextAsync(async dbContext =>
-            {
-                var anomalyEntity = new Entities.Anomaly()
-                {
-                    GUID = anomalyIdentity.Value,
-                };
-
-                dbContext.Anomalies.Add(anomalyEntity);
-
-                await dbContext.SaveChangesAsync();
-            });
-
-            return anomalyIdentity;
         }
 
         public async Task SetReportedUTC(AnomalyIdentity anomalyIdentity, DateTime dateTime)
@@ -349,7 +331,7 @@ namespace R5T.Aestia.Database
                 var imageFileIdentities = imageFileIdentityValues.Select(x => ImageFileIdentity.From(x)).ToList();
                 var reportedLocation = anomalyDetails.ReportedLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReportedLocationGUID.Value) : null;
                 var reporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null;
-                var reportedUTC = anomalyDetails.ReportedUTC ?? DateTime.MinValue;
+                var reportedUTC = anomalyDetails.ReportedUTC;
                 var textItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList();
 
                 var output = new AnomalyInfo()
@@ -374,7 +356,7 @@ namespace R5T.Aestia.Database
             {
                 var anomalyIdentityValues = await dbContext.AnomalyToCatchmentMappings.Where(x => x.CatchmentIdentity == catchmentIdentity.Value).Select(x => x.Anomaly.GUID).ToListAsync();
 
-                var output = anomalyIdentityValues.Where(x => x.HasValue).Select(x => AnomalyIdentity.From(x.Value)).ToList();
+                var output = anomalyIdentityValues.Select(x => AnomalyIdentity.From(x)).ToList();
                 return output;
             });
 
@@ -404,7 +386,7 @@ namespace R5T.Aestia.Database
                 var query =
                     from anomaly in dbContext.Anomalies
                     where anomaly.GUID != null
-                    where anomalyGuids.Contains(anomaly.GUID.Value)
+                    where anomalyGuids.Contains(anomaly.GUID)
                     join anomalyCatchment in dbContext.AnomalyToCatchmentMappings
                         on anomaly.ID equals anomalyCatchment.AnomalyID into catchmentGroup
                     from c in catchmentGroup.DefaultIfEmpty()
@@ -459,14 +441,14 @@ namespace R5T.Aestia.Database
                     // Console.WriteLine($"    Catchments ({catchments.Count}): {string.Join(',', catchments.ToList())}");
                     // Console.WriteLine($"    Text items ({textItemSet.Count}): {string.Join(',', textItemSet.ToList())}");
 
-                    if (entry.Key.GUID.GetValueOrDefault() == default)
+                    if (entry.Key.GUID == default)
                     {
                         // Unfortunately this also catches anomalies added with an all-zeros guid...
                         // and we have at least one of those (ID 228 as of 2020-07-17)
                         // throw new Exception("Got an anomaly without a GUID");
                     }
-                    var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID.GetValueOrDefault());
-                    var reportedUTC = entry.Key.ReportedUTC ?? DateTime.MinValue;
+                    var anomalyIdentity = new AnomalyIdentity(entry.Key.GUID);
+                    var reportedUTC = entry.Key.ReportedUTC;
                     var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
                     var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
                     var catchmentIdentities = catchmentsList.Select(x => CatchmentIdentity.From(x)).ToList();
@@ -497,7 +479,7 @@ namespace R5T.Aestia.Database
                 var anomalyGuids = anomalyIdentities.Select(x => x.Value).ToList();
 
                 var query = from anomaly in dbContext.Anomalies
-                    where anomalyGuids.Contains(anomaly.GUID.Value)
+                    where anomalyGuids.Contains(anomaly.GUID)
                     join anomalyImage in dbContext.AnomalyToImageFileMappings
                         on anomaly.ID equals anomalyImage.AnomalyID into imageGroup
                     from i in imageGroup.DefaultIfEmpty()
@@ -511,7 +493,7 @@ namespace R5T.Aestia.Database
 
                 // Group it by anomaly (since we need an AnomalyInfo per AnomalyIdentity passed in)
                 var grouped = result.GroupBy(
-                    x => AnomalyIdentity.From(x.GUID.Value),
+                    x => AnomalyIdentity.From(x.GUID),
                     x => ImageFileIdentity.From(x.ImageIdentity));
 
                 var output = grouped.ToDictionary(
@@ -522,6 +504,16 @@ namespace R5T.Aestia.Database
 
                 return output;
             });
+        }
+
+        public Task<int> GetUpvotesCount(AnomalyIdentity anomalyIdentity)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task SetUpvotesCount(AnomalyIdentity anomalyIdentity, int upvoteCount)
+        {
+            throw new NotImplementedException();
         }
     }
 }
