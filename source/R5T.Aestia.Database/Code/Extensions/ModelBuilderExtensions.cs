@@ -9,8 +9,6 @@ namespace R5T.Aestia.Database
     {
         public static ModelBuilder ForAnomalyDbContext(this ModelBuilder modelBuilder)
         {
-            //modelBuilder.Entity<Entities.Anomaly>().HasAlternateKey(x => x.GUID); // GUID is nullable, leave this for now.
-            modelBuilder.Entity<Entities.AnomalyToCatchmentMapping>();
             modelBuilder.Entity<Entities.AnomalyToCatchmentMapping>()
                 .HasOne(x => x.Anomaly)
                 .WithMany(x => x.AnomalyToCatchmentMappings)
