@@ -94,9 +94,18 @@ namespace R5T.Aestia.Database
             return imageFileIdentities;
         }
 
-        public Task<DateTime> GetReportedUTC(AnomalyIdentity anomalyIdentity)
+        public async Task<DateTime> GetReportedUTC(AnomalyIdentity anomalyIdentity)
         {
-            throw new NotImplementedException();
+            var reportedUtc = await this.ExecuteInContext(async dbContext =>
+            {
+                var reportedUtcValue = await dbContext.GetAnomaly(anomalyIdentity)
+                    .Select(x => x.ReportedUTC)
+                    .SingleOrDefaultAsync();
+              
+                return reportedUtcValue;
+            });
+
+            return reportedUtc;
         }
 
         public async Task<LocationIdentity> GetReportedLocation(AnomalyIdentity anomalyIdentity)
@@ -297,6 +306,7 @@ namespace R5T.Aestia.Database
                         x.ReportedUTC,
                         x.ReportedLocationGUID,
                         x.ReporterLocationGUID,
+                        x.UpvotesCount,
                     })
                     .SingleAsync();
 
@@ -333,6 +343,7 @@ namespace R5T.Aestia.Database
                 var reporterLocation = anomalyDetails.ReporterLocationGUID.HasValue ? LocationIdentity.From(anomalyDetails.ReporterLocationGUID.Value) : null;
                 var reportedUTC = anomalyDetails.ReportedUTC;
                 var textItems = textItemIdentityValues.Select(x => TextItemIdentity.From(x)).ToList();
+                var upvotesCount = anomalyDetails.UpvotesCount;
 
                 var output = new AnomalyInfo()
                 {
@@ -343,6 +354,7 @@ namespace R5T.Aestia.Database
                     ReporterLocation = reporterLocation,
                     ReportedUTC = reportedUTC,
                     TextItems = textItems,
+                    UpvotesCount = upvotesCount,
                 };
                 return output;
             });
@@ -506,14 +518,28 @@ namespace R5T.Aestia.Database
             });
         }
 
-        public Task<int> GetUpvotesCount(AnomalyIdentity anomalyIdentity)
+        public async Task<int> GetUpvotesCount(AnomalyIdentity anomalyIdentity)
         {
-            throw new NotImplementedException();
+            var upvotesCount = await this.ExecuteInContext(async dbContext =>
+            {
+                var output = await dbContext.GetAnomaly(anomalyIdentity)
+                    .Select(x => x.UpvotesCount)
+                    .SingleOrDefaultAsync();
+              
+                return output;
+            });
+
+            return upvotesCount;
         }
 
-        public Task SetUpvotesCount(AnomalyIdentity anomalyIdentity, int upvoteCount)
+        public async Task IncrementUpvotesCount(AnomalyIdentity anomalyIdentity)
         {
-            throw new NotImplementedException();
+            await this.ExecuteInContext(async dbContext =>
+            {
+                var anomalyEntity = await dbContext.GetAnomaly(anomalyIdentity).SingleAsync();
+                anomalyEntity.UpvotesCount += 1;
+                await dbContext.SaveChangesAsync();
+            });
         }
     }
 }
