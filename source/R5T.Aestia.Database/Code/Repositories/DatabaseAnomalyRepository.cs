@@ -350,10 +350,10 @@ namespace R5T.Aestia.Database
                     AnomalyIdentity = anomalyIdentity,
                     CatchmentIdentities = catchmentIdentities,
                     ImageFileIdentities = imageFileIdentities,
-                    ReportedLocation = reportedLocation,
-                    ReporterLocation = reporterLocation,
+                    ReportedLocationIdentity = reportedLocation,
+                    ReporterLocationIdentity = reporterLocation,
                     ReportedUTC = reportedUTC,
-                    TextItems = textItems,
+                    TextItemsIdentities = textItems,
                     UpvotesCount = upvotesCount,
                 };
                 return output;
@@ -470,11 +470,11 @@ namespace R5T.Aestia.Database
                     {
                         AnomalyIdentity = anomalyIdentity,
                         ReportedUTC = reportedUTC,
-                        ReportedLocation = reportedLocation,
-                        ReporterLocation = reporterLocation,
+                        ReportedLocationIdentity = reportedLocation,
+                        ReporterLocationIdentity = reporterLocation,
                         CatchmentIdentities = catchmentIdentities,
                         ImageFileIdentities = imageFileIdentities,
-                        TextItems = textItems
+                        TextItemsIdentities = textItems
                     };
                     anomalyInfos.Add(info);
                 }
