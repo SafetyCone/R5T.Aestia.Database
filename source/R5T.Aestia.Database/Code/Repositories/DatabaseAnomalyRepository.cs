@@ -464,7 +464,10 @@ namespace R5T.Aestia.Database
                     var reportedLocation = entry.Key.ReportedLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReportedLocationGUID.Value) : null;
                     var reporterLocation = entry.Key.ReporterLocationGUID.HasValue ? LocationIdentity.From(entry.Key.ReporterLocationGUID.Value) : null;
                     var catchmentIdentities = catchmentsList.Select(x => CatchmentIdentity.From(x)).ToList();
-                    var imageFileIdentities = imagesList.Select(x => ImageFileIdentity.From(x)).ToList();
+                    var imageFileIdentities = imagesList
+                        .Where(x => x != Guid.Empty)
+                        .Select(x => ImageFileIdentity.From(x))
+                        .ToList();
                     var textItems = textItemsList.Select(x => TextItemIdentity.From(x)).ToList();
                     var info = new AnomalyInfo
                     {
