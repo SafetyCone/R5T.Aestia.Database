@@ -261,9 +261,9 @@ namespace R5T.Aestia.Database
             return catchmentIdentities;
         }
 
-        public async Task AddCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
+        public async Task<bool> AddCatchment(AnomalyIdentity anomalyIdentity, CatchmentIdentity catchmentIdentity)
         {
-            await this.ExecuteInContext(async dbContext =>
+            return await this.ExecuteInContext(async dbContext =>
             {
                 // Old version involved this
                 // var mappingEntity = await dbContext.AnomalyToCatchmentMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
@@ -279,20 +279,23 @@ namespace R5T.Aestia.Database
                     .Where(x => x.AnomalyID == anomalyID)
                     .Where(x => x.CatchmentIdentity == catchmentIdentity.Value)
                     .AnyAsync();
-                if (exists)
+
+                var actuallyAdded = false;
+                if (!exists)
                 {
-                    return;
+                    // Create new entity
+                    var newEntity = new Entities.AnomalyToCatchmentMapping {
+                        AnomalyID = anomalyID,
+                        CatchmentIdentity = catchmentIdentity.Value
+                    };
+
+                    // Add it to the database and save
+                    dbContext.Add(newEntity);
+                    await dbContext.SaveChangesAsync();
+                    actuallyAdded = true;
                 }
 
-                // Create new entity
-                var newEntity = new Entities.AnomalyToCatchmentMapping {
-                    AnomalyID = anomalyID,
-                    CatchmentIdentity = catchmentIdentity.Value
-                };
-
-                // Add it to the database and save
-                dbContext.Add(newEntity);
-                await dbContext.SaveChangesAsync();
+                return actuallyAdded;
             });
         }
 
@@ -373,20 +376,6 @@ namespace R5T.Aestia.Database
             });
 
             return anomalies;
-        }
-
-        public async Task SetOrganization(AnomalyIdentity anomalyIdentity, OrganizationIdentity organizationIdentity)
-        {
-            // TODO: change this into AddOrganization, so that anomalies can have multiple associated organizations...
-            // Though...is AnomalyToOrganizationMappings ever used??
-            await this.ExecuteInContextAsync(async dbContext =>
-            {
-                var mappingEntity = await dbContext.AnomalyToOrganizationMappings.Acquire(dbContext.Anomalies, anomalyIdentity.Value);
-
-                mappingEntity.OrganizationIdentity = organizationIdentity.Value;
-
-                await dbContext.SaveChangesAsync();
-            });
         }
 
         public async Task<List<AnomalyInfo>> GetAnomalyInfos(List<AnomalyIdentity> anomalyIdentities)
